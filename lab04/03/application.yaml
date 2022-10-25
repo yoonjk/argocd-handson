@@ -1,0 +1,27 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: user00-nginx
+  finalizers:
+  - resources-finalizer.argocd.argoproj.io
+  namespace: argocd
+  annotations:
+    argocd-image-updater.argoproj.io/image-list: docker.io/nexweb1/nginx
+    argocd-image-updater.argoproj.io/my-image.update-strategy: latest
+    argocd-image-updater.argoproj.io/write-back-method: git:secret:argocd/github-credentials
+    argocd-image-updater.argoproj.io/git-branch: image-updater # my branch
+spec:
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: default
+  project: default
+  source:
+    repoURL: 'https://github.com/yoonjk/argo-demo.git'
+    path: kustomize-nginx
+    targetRevision: image-updater
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+    - CreateNamespace=true
