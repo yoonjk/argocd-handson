@@ -1,0 +1,127 @@
+apiVersion: argoproj.io/v1alpha1
+kind: WorkflowTemplate
+metadata:
+  name: ci-workflow
+  namespace: argo
+spec:
+  templates:
+    - name: git-checkout-private
+      inputs:
+        parameters:
+          - name: repo
+          - name: revision
+        artifacts:
+          - name: source
+            path: /src
+            git:
+              repo: '{{inputs.parameters.repo}}'
+              revision: '{{inputs.parameters.revision}}'
+      outputs:
+        parameters:
+          - name: tag
+            valueFrom:
+              path: /tmp/git-commit
+        artifacts:
+          - name: source
+            path: /src
+      metadata: {}
+      container:
+        name: ''
+        image: alpine/git
+        command:
+          - sh
+          - '-c'
+        args:
+          - >-
+            cd /src && git status && ls -l && git rev-parse --short HEAD >
+            /tmp/git-commit
+        resources: {}
+    - name: build-package
+      inputs:
+        artifacts:
+          - name: source
+            path: /src
+      outputs:
+        artifacts:
+          - name: source
+            path: /src
+      metadata: {}
+      container:
+        name: ''
+        image: gcr.io/cloud-builders/mvn:latest
+        command:
+          - sh
+          - '-c'
+        args:
+          - cd /src && ls -a &&  mvn clean package -DskipTests
+        resources: {}
+    - name: build-and-push
+      inputs:
+        parameters:
+          - name: imageUrl
+          - name: imageTag
+          - name: pathToDockerfile
+        artifacts:
+          - name: source
+            path: /src
+      outputs:
+        artifacts:
+          - name: source
+            path: /src
+      metadata: {}
+      container:
+        name: ''
+        image: quay.io/buildah/stable
+        command:
+          - sh
+          - '-euxc'
+        args:
+          - >
+            buildah bud --tls-verify=true --layers -f
+            '{{inputs.parameters.pathToDockerfile}}' -t
+            '{{inputs.parameters.imageUrl}}:{{inputs.parameters.imageTag}}' .
+
+            buildah push --tls-verify=true 
+            '{{inputs.parameters.imageUrl}}:{{inputs.parameters.imageTag}}'
+        workingDir: /src
+        env:
+          - name: DOCKER_CONFIG
+            value: /.docker
+        resources: {}
+        volumeMounts:
+          - name: docker-config
+            mountPath: /.docker
+          - name: varlibc
+            mountPath: /var/lib/containers
+        securityContext:
+          privileged: true
+          runAsUser: 0
+          allowPrivilegeEscalation: true
+      volumes:
+        - name: docker-config
+          secret:
+            secretName: docker-credentials
+            items:
+              - key: .dockerconfigjson
+                path: config.json
+        - name: varlibc
+          emptyDir: {}
+    - name: deploy
+      inputs:
+        parameters:
+          - name: deploymentFile
+        artifacts:
+          - name: source
+            path: /src
+      outputs: {}
+      metadata: {}
+      container:
+        name: k8s-kubectl
+        image: lachlanevenson/k8s-kubectl
+        args:
+          - apply
+          - '-k'
+          - '{{inputs.parameters.deploymentFile}}'
+        workingDir: /src
+        resources: {}
+  arguments: {}

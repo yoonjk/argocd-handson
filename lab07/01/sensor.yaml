@@ -1,0 +1,50 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Sensor
+metadata:
+  name: webhook
+spec:
+  template:
+    serviceAccountName: operate-workflow-sa
+  dependencies:
+    - name: test-dep
+      eventSourceName: webhook
+      eventName: example
+  triggers:
+    - template:
+        name: webhook-workflow-trigger
+        k8s:
+          operation: create
+          source:
+            resource:
+              apiVersion: argoproj.io/v1alpha1
+              kind: Workflow
+              metadata:
+                generateName: webhook-
+              spec:
+                entrypoint: whalesay
+                arguments:
+                  parameters:
+                  - name: branch
+                    # the value will get overridden by event payload from test-dep
+                    value: main 
+                  - name: image 
+                    value: 'test'
+                templates:
+                - name: whalesay
+                  inputs:
+                    parameters:
+                    - name: branch
+                    - name: image
+                  container:
+                    image: docker/whalesay:latest
+                    command: [cowsay]
+                    args: ["{{inputs.parameters.branch}}","{{inputs.parameters.image}}"]
+          parameters:
+            - src:
+                dependencyName: test-dep
+                dataKey: body.branch
+              dest: spec.arguments.parameters.0.value
+            - src:
+                dependencyName: test-dep
+                dataKey: body.image
+              dest: spec.arguments.parameters.1.value

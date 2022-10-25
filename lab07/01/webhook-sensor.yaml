@@ -1,0 +1,95 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Sensor
+metadata:
+  name: webhook
+spec:
+  template:
+    serviceAccountName: operate-workflow-sa
+  dependencies:
+    - name: test-dep
+      eventSourceName: webhook
+      eventName: example
+      filters:
+        data:
+        - path: body.ref # Eventsource body.X-GitHub-Event  already filters for create but just in case ...
+          type: string
+          value:
+          - "refs/heads/hello"
+  triggers:
+    - template:
+        name: webhook-workflow-trigger
+        argoWorkflow:
+          operation: submit
+          source:
+            resource:
+              apiVersion: argoproj.io/v1alpha1
+              kind: Workflow
+              metadata:
+                generateName: webhook-
+              spec:
+                entrypoint: whalesay
+                onExit: exit-handler
+                arguments:
+                  parameters:
+                    - name: cloneUrl
+                    - name: branchName
+                    - name: commitId
+                    - name: message
+                    - name: notifcationUrl
+                      value: "https://hooks.slack.com/services/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"
+                templates:
+                - name: whalesay
+                  inputs:
+                    parameters:
+                      - name: cloneUrl # URL for the repo to be patched
+                        value: "{{workflow.parameters.cloneUrl}}"                    
+                      - name: branchName
+                        value: "{{workflow.parameters.branchName}}"
+                      - name: commitId 
+                        value: "{{workflow.parameters.commitId}}" 
+                      - name: message 
+                        value: "{{workflow.parameters.message}}"                        
+                      - name: notifcationUrl 
+                        value: "{{workflow.parameters.notifcationUrl}}"   
+                  container:
+                    image: docker/whalesay:latest
+                    command: [cowsay]
+                    args: ["{{inputs.parameters.cloneUrl}}", "{{inputs.parameters.branchName}}"]
+                - name: exit-handler
+                  container:
+                    image: curlimages/curl
+                    command: [sh, -c]
+                    args: [
+                      "curl -X POST -H -H 'Content-type: application/json' --data '{
+                        \"text\": \"{{workflow.name}} finished\",
+                        \"blocks\": [
+                          {
+                            \"type\": \"section\",
+                            \"text\": {
+                              \"type\": \"mrkdwn\",
+                              \"text\": \"Workflow app {{workflow.name}} {{workflow.status}}\",
+                            }
+                          }
+                        ]
+                      }'
+                      https://hooks.slack.com/services/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"
+                    ]
+          parameters:
+            - src: # cloneUrl
+                dependencyName: test-dep
+                dataTemplate: >-
+                  {{ .Input.body.repository.clone_url  | replace "application-" "manifest-" }}
+              dest: spec.arguments.parameters.0.value
+            - src: # branchName
+                dependencyName: test-dep
+                dataKey: body.ref
+              dest: spec.arguments.parameters.1.value
+            - src: # meta
+                dependencyName: test-dep
+                dataKey: body.head_commit.id
+              dest: spec.arguments.parameters.2.value    
+            - src: # meta
+                dependencyName: test-dep
+                dataTemplate: >-
+                  {{ .Input.body.ref  | replace "refs/heads/" "" }}
+              dest: spec.arguments.parameters.3.value  

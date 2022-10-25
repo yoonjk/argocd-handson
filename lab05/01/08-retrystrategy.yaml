@@ -1,0 +1,15 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: retry-container-
+spec:
+  entrypoint: retry-container
+  templates:
+  - name: retry-container
+    retryStrategy:
+      limit: 2
+      retryPolicy: OnError
+    container:
+      image: alpine:3.15.4
+      command: ["sh"]
+      args: ["-c", "sleep 30 ; exit 1"]

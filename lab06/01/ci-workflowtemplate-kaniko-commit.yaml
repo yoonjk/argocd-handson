@@ -1,0 +1,139 @@
+apiVersion: argoproj.io/v1alpha1
+kind: WorkflowTemplate
+metadata:
+  name: ci-workflow-kaniko
+  namespace: argo
+spec:
+  templates:
+  - name: git-checkout-private
+    inputs:
+      parameters:
+      - name: repo
+      - name: revision
+      artifacts:
+      - name: source
+        path: /src
+        git:
+          repo: "{{inputs.parameters.repo}}"
+          revision: "{{inputs.parameters.revision}}"
+
+    container:
+      image: alpine/git
+      command: [sh, -c]
+      args: ["cd /src && git status && ls -l && git rev-parse --short HEAD > /tmp/git-commit"]
+    outputs:
+      artifacts:
+        - name: source
+          path: /src
+      parameters:
+        - name: tag
+          valueFrom:
+            path: /tmp/git-commit
+            
+  - name: build-package
+    inputs:
+      artifacts:
+      - name: source
+        path: /src
+    container:
+      image: gcr.io/cloud-builders/mvn:latest
+      command: [sh, -c]
+      args: ["cd /src && ls -a &&  mvn clean package -DskipTests"]
+    outputs:
+      artifacts:
+      - name: source
+        path: /src
+  - name: build-and-push
+    inputs:
+      parameters:
+        - name: imageUrl
+        - name: imageTag
+        - name: pathToDockerfile
+      artifacts:
+        - name: source
+          path: /src
+    container:
+      name: kaniko
+      image: gcr.io/kaniko-project/executor:debug
+      command:
+        - executor
+      args:
+        - '--dockerfile={{inputs.parameters.pathToDockerfile}}'
+        - '--context=./'
+        - '--destination={{inputs.parameters.imageUrl}}:{{inputs.parameters.imageTag}}'
+      workingDir: /src
+      volumeMounts:
+        - name: docker-config
+          mountPath: /kaniko/.docker
+        - name: varlibc
+          mountPath: /var/lib/containers
+      securityContext:
+        privileged: true
+        runAsUser: 0
+        allowPrivilegeEscalation: true
+    outputs:
+      artifacts:
+      - name: source
+        path: /src
+    volumes:
+      - name: docker-config
+        secret:
+          secretName: docker-credentials
+          items:
+            - key: .dockerconfigjson
+              path: config.json
+      - name: varlibc 
+        emptyDir: {}
+  - name: commit
+    inputs:
+      parameters:
+        - name: git-repo-revision
+        - name: git-repo-path
+        - name: git-repo-url              
+        - name: pathToYamlFile
+        - name: imageUrl
+        - name: buildRevision
+      artifacts:
+      - name: source
+        path: /manifest
+        git:
+          repo: "{{inputs.parameters.git-repo-url }}"
+          revision: "{{inputs.parameters.git-repo-revision}}"
+
+    container:
+      image: alpine/git
+      command: [sh, -euxc]
+      args: ["
+        cd /manifest; 
+
+        git clone -b {{inputs.parameters.git-repo-revision}} {{inputs.parameters.git-repo-url}};
+
+        cd sample-service-deploy;
+       
+        git config --global user.email 'nexweb1@gmail.com';
+        git config --global user.name  'yoonjk';
+        ls -al;
+        cat {{inputs.parameters.pathToYamlFile}} | grep -E 'image:' | awk '{print $0 }';
+        sed -i 's#{{inputs.parameters.imageUrl}}:[a-zA-Z0-9]\\+#{{inputs.parameters.imageUrl}}:{{inputs.parameters.buildRevision}}#g' '{{inputs.parameters.pathToYamlFile}}';
+        cat {{inputs.parameters.pathToYamlFile}} | grep -E 'image:' | awk '{print $0 }';
+ 
+        git add {{inputs.parameters.pathToYamlFile}};
+        git commit -m '[tekton] updating {{inputs.parameters.imageUrl}} image to {{inputs.parameters.buildRevision}}';
+        git push https://${GITHUB_USER}:${GITHUB_PASSWORD}@github.com/yoonjk/sample-service-deploy.git
+        "]
+      env:
+      - name: GITHUB_USER
+        valueFrom:
+          secretKeyRef:
+            name: github-basic
+            key: username
+      - name: GITHUB_PASSWORD
+        valueFrom:
+          secretKeyRef:
+            name: github-basic
+            key: personal_access_token
+    outputs:
+      artifacts:
+        - name: source
+          path: /manifest
+    activeDeadlineSeconds: 300

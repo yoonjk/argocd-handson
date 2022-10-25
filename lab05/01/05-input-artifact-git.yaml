@@ -1,0 +1,26 @@
+apiVersion: v1
+kind: Workflow 
+metadata: 
+  generateName: input-artifact-git-
+spec: 
+  entrypoint: git-clone 
+  templates: 
+    - name: git-clone 
+      inputs: 
+        artifacts: 
+          - name: my-sample-source
+            path: /src 
+            git:
+              repo: https://github.com/yoonjk/sample-service.git
+              revision: hello 
+              usernameSecret: 
+                name: github-creds 
+                key: username 
+              passwordSecret: 
+                name: github-creds 
+                key: password 
+      container: 
+        image: golang:1.10 
+        command: [sh,-c]
+        args: ["git status && ls && cat HELP.md"]
+        workingDir: /src

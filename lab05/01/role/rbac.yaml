@@ -1,0 +1,25 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role 
+metadata:
+  name: batch-jobs-role 
+rules:
+  - apiGroups:
+      - "batch"
+    resources:
+      - jobs
+      - cronjobs 
+    verbs: 
+      - "*"
+--- 
+apiVersion: rbac.authorization.k8s.io/v1 
+kind: RoleBinding 
+metadata: 
+  name: batch-job-role-binding 
+roleRef: 
+  apiGroup: rbac.authorization.k8s.io 
+  kind: Role 
+  name: batch-jobs-role 
+subjects: 
+  - name: default 
+    kind: ServiceAccount 
+    namespace: argo

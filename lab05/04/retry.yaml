@@ -1,0 +1,21 @@
+apiVersion: argoproj.io/v1alpha1 
+kind: Workflow 
+metadata: 
+  generateName: retry-container-
+spec: 
+  entrypoint: retry-container
+  templates: 
+    - name: retry-container 
+      retryStrategy:
+        limit: "3" 
+        retryPolicy: "OnError" 
+      script:
+        image: python:alpine3.6 
+        command: ["python"]
+        source: |
+          import random
+          import sys
+  
+          exit_code = random.choice([0, 1, 1])
+          print(exit_code)
+          # sys.exit(exit_code)" 

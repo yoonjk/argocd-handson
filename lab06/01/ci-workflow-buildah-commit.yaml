@@ -1,0 +1,70 @@
+  apiVersion: argoproj.io/v1alpha1
+  kind: Workflow
+  metadata:
+    generateName: buildah-ci-
+    namespace: argo
+  spec:
+    serviceAccountName: argo
+    entrypoint: argo-ci
+    arguments:
+      parameters:
+        - name: author
+          value: <author>
+        - name: email
+          value: <email>
+    templates:
+      - name: argo-ci
+        steps:
+          - - name: git-checkout
+              templateRef:
+                name: ci-workflow-git-push
+                template: git-checkout-private
+              arguments:
+                parameters:
+                - name: repo
+                  value: https://github.com/yoonjk/sample-service.git
+                - name: revision
+                  value: hello
+
+          - - name: build-package
+              templateRef:
+                name: ci-workflow-git-push
+                template: build-package
+              arguments:
+                artifacts:
+                - name: source
+                  from: "{{steps.git-checkout.outputs.artifacts.source}}"
+
+          - - name: build-and-push
+              templateRef:
+                name: ci-workflow
+                template: build-and-push
+              arguments:
+                artifacts:
+                - name: source
+                  from: "{{steps.build-package.outputs.artifacts.source}}"
+                parameters:
+                  - name: imageUrl
+                    value: "docker.io/nexweb1/sample"
+                  - name: imageTag
+                    value: "dev"
+                  - name: pathToDockerfile
+                    value: "deployment/Dockerfile" 
+          - - name: commit
+              templateRef:
+                name: ci-workflow-git-push
+                template: commit
+              arguments:
+                parameters:
+                - name: git-repo-revision
+                  value: main
+                - name: git-repo-path
+                  value: "/."
+                - name: git-repo-url
+                  value: https://github.com/yoonjk/sample-service-deploy.git               
+                - name: pathToYamlFile
+                  value: deployment/sample.yaml
+                - name: imageUrl
+                  value: "docker.io/nexweb1/sample"
+                - name: buildRevision
+                  value: "dev"

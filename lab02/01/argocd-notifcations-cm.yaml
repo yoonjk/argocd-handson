@@ -1,0 +1,12 @@
+export EMAIL_USER=자신의 email 주소
+export PASSWORD=자신의 email 비밀번호
+kubectl apply -n argocd -f - << EOF
+apiVersion: v1
+kind: Secret
+metadata:
+  name: argocd-notifications-secret
+stringData:
+  email-username: $EMAIL_USER
+  email-password: $PASSWORD
+type: Opaque
+EOF

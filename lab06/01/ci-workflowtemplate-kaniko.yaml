@@ -1,0 +1,83 @@
+apiVersion: argoproj.io/v1alpha1
+kind: WorkflowTemplate
+metadata:
+  name: ci-workflow-kaniko
+  namespace: argo
+spec:
+  templates:
+  - name: git-checkout-private
+    inputs:
+      parameters:
+      - name: repo
+      - name: revision
+      artifacts:
+      - name: source
+        path: /src
+        git:
+          repo: "{{inputs.parameters.repo}}"
+          revision: "{{inputs.parameters.revision}}"
+
+    container:
+      image: alpine/git
+      command: [sh, -c]
+      args: ["cd /src && git status && ls -l && git rev-parse --short HEAD > /tmp/git-commit"]
+    outputs:
+      artifacts:
+        - name: source
+          path: /src
+      parameters:
+        - name: tag
+          valueFrom:
+            path: /tmp/git-commit
+            
+  - name: build-package
+    inputs:
+      artifacts:
+      - name: source
+        path: /src
+    container:
+      image: gcr.io/cloud-builders/mvn:latest
+      command: [sh, -c]
+      args: ["cd /src && ls -a &&  mvn clean package -DskipTests"]
+    outputs:
+      artifacts:
+      - name: source
+        path: /src
+  - name: build-and-push
+    inputs:
+      parameters:
+        - name: imageUrl
+        - name: imageTag
+        - name: pathToDockerfile
+      artifacts:
+        - name: source
+          path: /src
+    container:
+      name: kaniko
+      image: gcr.io/kaniko-project/executor:debug
+      command:
+        - executor
+      args:
+        - '--dockerfile={{inputs.parameters.pathToDockerfile}}'
+        - '--context=./'
+        - '--destination={{inputs.parameters.imageUrl}}:{{inputs.parameters.imageTag}}'
+      workingDir: /src
+      volumeMounts:
+        - name: docker-config
+          mountPath: /kaniko/.docker
+        - name: varlibc
+          mountPath: /var/lib/containers
+      securityContext:
+        privileged: true
+        runAsUser: 0
+        allowPrivilegeEscalation: true
+    volumes:
+      - name: docker-config
+        secret:
+          secretName: docker-credentials
+          items:
+            - key: .dockerconfigjson
+              path: config.json
+      - name: varlibc 
+        emptyDir: {}
+    activeDeadlineSeconds: 300

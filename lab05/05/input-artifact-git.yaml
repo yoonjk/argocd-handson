@@ -1,0 +1,43 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata: 
+  generateName: input-artifact-git-
+  namespace: default: 
+spec: 
+  serviceaccount: workflow 
+  entrypoint: pipe 
+  templates: 
+  - name: pipe 
+    steps:
+    - - name: checkout 
+        template: checkout
+    - - name: delay
+        template: delay 
+    - - name: image-build 
+        template: image-build 
+        arguments: 
+          artifacts: 
+          - name: source 
+            from: "{{steps.checkout.outputs.artifacts.source}}" 
+  - name: checkout
+    inputs:
+      artifacts:
+      - name: source 
+        path: /src 
+        git: 
+          repo: git://github.com/yoonjk/sample-service.git
+          revision: hello 
+    output:
+      artifacts:
+      - name: source 
+        path: /src
+    container:
+      image: docker.io/sonarsource/sonar-scanner-cli 
+      command: [sonar-scanner]
+      args: [ "-Dsonar.projectKey=sample-service",
+              "-Dsonar.source=.",
+              "-Dsonar.host.url=http://169.61.24.20:9000",
+              "-Dsonar.login=sqp_15d171f96681a7c5cfd9b6c315331a97ee0ebad7",
+              "-Dsonar.sources=sample-service/src/main/java", 
+              "-Dsonar.java.binaries=sample-service/target/classes"]
+

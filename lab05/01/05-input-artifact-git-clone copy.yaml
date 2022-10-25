@@ -1,0 +1,39 @@
+apiVersion: v1
+kind: Workflow 
+metadata: 
+  generateName: input-artifact-git-
+spec: 
+  entrypoint: git-clone 
+  arguments:
+    parameters: 
+      - name: git-repo-revision
+        value: hello
+      - name: git-repo-path
+        value: "/."
+      - name: git-repo-url
+        value: https://github.com/yoonjk/sample-service.git 
+  templates: 
+    - name: git-clone 
+      inputs: 
+        parameters: 
+          - name: git-repo-revision
+          - name: git-repo-path
+          - name: git-repo-url
+      #container: 
+      script:
+        image: alpine/git
+        command: [sh, -c]
+        args: 
+          - |
+            rm -rf sample-service && git clone -b {{workflow.parameters.git-repo-revision}} {{workflow.parameters.git-repo-url}} && ls -al && pwd
+
+        #args: [" rm -rf sample-service && git clone -b {{workflow.parameters.git-repo-revision}} {{workflow.parameters.git-repo-url}} && ls -al && pwd"]
+        workingDir: "/gen-source{{workflow.parameters.git-repo-path}}"        
+        volumeMounts:
+          - name: workdir
+            mountPath: /gen-source
+      volumes:
+        - name: workdir 
+          persistentVolumeClaim: 
+            claimName: maven-repo-pvc
+            

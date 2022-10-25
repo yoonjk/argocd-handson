@@ -1,0 +1,11 @@
+apiVersion: v1
+data:
+  token: MTIzNDU2Nzg=
+kind: Secret
+metadata:
+  annotations:
+    lifecycle.cattle.io/create.secretsController_local: "true"
+    secret.user.cattle.io/secret: "true"
+  name: github-access
+
+type: Opaque

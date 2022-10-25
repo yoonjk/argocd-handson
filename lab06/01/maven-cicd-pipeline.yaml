@@ -1,0 +1,156 @@
+apiVersion: argoproj.io/v1alpha1
+kind: WorkflowTemplate
+metadata:
+  name: ci-workflow
+  namespace: argo
+spec:
+  templates:
+  - name: git-checkout-private
+    inputs:
+      parameters:
+      - name: repo
+      - name: revision
+      artifacts:
+      - name: source
+        path: /src
+        git:
+          repo: "{{inputs.parameters.repo}}"
+          revision: "{{inputs.parameters.revision}}"
+          sshPrivateKeySecret:
+            name: source-key
+            key: ssh-privatekey
+    container:
+      image: alpine/git
+      command: [sh, -c]
+      args: ["cd /src && git status && ls -l && git rev-parse --short HEAD > /tmp/git-commit"]
+    outputs:
+      artifacts:
+        - name: source
+          path: /src
+      parameters:
+        - name: tag
+          valueFrom:
+            path: /tmp/git-commit
+            
+  - name: run-test
+    inputs:
+      artifacts:
+      - name: source
+        path: /src
+    container:
+      image: openjdk:8-jgcr.io/cloud-builders/mvn:latest
+      command: [sh, -c]
+      args: ["cd /src && ls -a && chmod 755 mvn clean package -DskipTests"]
+    outputs:
+      artifacts:
+      - name: source
+        path: /src
+
+  - name: build-and-push
+    inputs:
+      artifacts:
+      - name: source
+        path: /workspace
+      parameters:
+      - name: imageUrl
+      - name: imageTag
+      - name: pathToContext
+    container:
+      image: gcr.io/kaniko-project/executor:latest
+      args: ["--dockerfile","Dockerfile", "--destination","{{inputs.parameters.imageUrl}}:{{inputs.parameters.imageTag}}"]
+      env:
+        - name: "GOOGLE_APPLICATION_CREDENTIALS"
+          value: "/secret/google.json"
+      volumeMounts:
+        - name: gcp-creds
+          mountPath: "/secret"
+    activeDeadlineSeconds: 60
+
+  - name: git-new-branch
+    inputs:
+      parameters:
+      - name: release
+      - name: repo
+    outputs:
+      artifacts:
+      - name: source
+        path: /git
+    container:
+      image: gcr.io/arctiqteam-images/git:v2.0.4
+      command: ["/bin/sh", "-c"]
+      args: ["git clone {{inputs.parameters.repo}} /git && git checkout -b {{inputs.parameters.release}}-update"]
+      volumeMounts:
+        - mountPath: "/opt/ssh"
+          name: ssh-deploy-creds
+    activeDeadlineSeconds: 60
+
+  - name: git-commit
+    inputs:
+      parameters:
+      - name: release
+      - name: author
+      - name: email
+      artifacts:
+      - name: source
+        path: /git
+    outputs:
+      artifacts:
+      - name: source
+        path: /git
+    container:
+      image: gcr.io/arctiqteam-images/git:v2.0.4
+      command: ["/bin/sh", "-c"]
+      args: ["git add * && git commit -m 'change to image {{inputs.parameters.release}}-update' && git push --set-upstream origin {{inputs.parameters.release}}-update"]
+      env:
+        - name: "GIT_AUTHOR_NAME"
+          value: "{{inputs.parameters.author}}"
+        - name: "GIT_AUTHOR_EMAIL"
+          value: "{{inputs.parameters.email}}"
+        - name: "GIT_COMMITTER_NAME"
+          value: "{{inputs.parameters.author}}"
+        - name: "GIT_COMMITTER_EMAIL"
+          value: "{{inputs.parameters.email}}"
+      volumeMounts:
+        - mountPath: "/opt/ssh"
+          name: ssh-deploy-creds
+    activeDeadlineSeconds: 60
+
+  - name: kustomize-image
+    inputs:
+      parameters:
+      - name: release
+      - name: imageUrl
+      artifacts:
+      - name: source
+        path: /git
+    outputs:
+      artifacts:
+      - name: source
+        path: /git
+    container:
+      image: gcr.io/arctiqteam-images/kustomizer:v3.3.0
+      command: ["/bin/sh", "-c", "chmod 666 /git/kustomization.yaml && kustomize edit set image {{inputs.parameters.imageUrl}}:{{inputs.parameters.release}}"]
+      workingDir: /git
+    activeDeadlineSeconds: 60
+
+  - name: git-pr
+    inputs:
+      artifacts:
+      - name: source
+        path: /git
+    container:
+      image: gcr.io/arctiqteam-images/git:v2.0.4
+      command: ["/bin/sh", "-c"]
+      args: ["hub pull-request --no-edit"]
+      env:
+        - name: GITHUB_USER
+          valueFrom:
+            secretKeyRef:
+              name: github-access
+              key: username
+        - name: GITHUB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: github-access
+              key: password
+    activeDeadlineSeconds: 60

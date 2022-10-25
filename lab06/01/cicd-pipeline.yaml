@@ -1,0 +1,67 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: input-artifact-git-
+  namespace: argo
+spec:
+  serviceAccountName: workflow
+  entrypoint: pipe
+  templates:
+  - name: pipe
+    steps:
+    - - name: checkout
+        template: checkout
+    - - name: delay
+        template: delay
+    - - name: image-build
+        template: image-build
+        arguments:
+          artifacts:
+          - name: source
+            from: "{{steps.checkout.outputs.artifacts.source}}"
+
+  - name: checkout
+    inputs:
+      artifacts:
+      - name: source
+        path: /src
+        git:
+          repo: git://github.com/kmaster8/kubernertes.git
+          revision: "main"
+    outputs:
+      artifacts:
+      - name: source
+        path: /src
+    container:
+      image: sonarsource/sonar-scanner-cli
+      command: [sonar-scanner]
+      workingDir: /src
+      args: ["-Dsonar.projectKey=mytest","-Dsonar.sources=.","-Dsonar.host.url=http://sonarqube.10.60.100.40.nip.io","-Dsonar.login=2c406f88ff91426975782daa7d1873e73a06b88e"]
+
+  - name: delay
+    suspend: {}
+
+  - name: image-build
+    inputs:
+      artifacts:
+      - name: source
+        path: /src
+    container:
+      name: kaniko
+      image: gcr.io/kaniko-project/executor:debug
+      command: [executor]
+      workingDir: /src
+      args:
+      - "--dockerfile=Dockerfile"
+      - "--context=./simple-flask"
+      - "--destination=ghcr.io/kmaster8/hello:v3"
+      volumeMounts:
+      - name: kaniko-secret
+        mountPath: /kaniko/.docker/
+    volumes:
+    - name: kaniko-secret
+      secret:
+        secretName: regcred
+        items:
+          - key: .dockerconfigjson
+            path: config.json
