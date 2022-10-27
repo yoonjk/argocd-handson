@@ -23,6 +23,8 @@ image pull-secret은 Argo CD 이미지 업데이트가 실행중인 동일한 Ku
 kubectl apply -n argocd  \
   -f https://raw.githubusercontent.com/argoproj-labs/argocd-image-updater/stable/manifests/install.yaml
 
+kubectl delete -n argocd  \
+  -f https://raw.githubusercontent.com/argoproj-labs/argocd-image-updater/stable/manifests/install.yaml
 # minikube setup
 https://blog.argoproj.io/closing-ci-cd-loop-using-argoproj-a78a50a98fe8
 
@@ -49,9 +51,13 @@ data:
 docker tag nginx:latest nexweb1/nginx:0.0.1
 
 argoCD Image Updater 설정
-kubectl annotate app sample -n argocd \
-    argocd-image-updater.argoproj.io/image-list=docker.io/nexweb1/hello \
+kubectl annotate app user00-nginx -n argocd \
+    argocd-image-updater.argoproj.io/image-list=docker.io/nexweb1/nginx \
     argocd-image-updater.argoproj.io/my-image.update-strategy=latest
+<<<<<<< HEAD
+=======
+
+>>>>>>> 283532a (Modify application.yaml)
 
 
 
@@ -62,3 +68,24 @@ https://argocd-image-updater.readthedocs.io/en/stable/basics/update-methods/
 
 
 
+<<<<<<< HEAD
+=======
+## secret 생성 
+kubectl create secret docker-registry github-creds \
+--docker-server=ht
+--docker-username=username
+--docker-password=
+-n argocd
+
+## Argo CD Access Token Secret 생성
+
+argocd account generate-token --account user00 --id user00
+
+kubectl create secret generic argocd-image-updater-secret \
+--from-literal argocd.token=$TOKEN --dry-run -o yaml | \
+kubectl -n argocd apply -f -
+
+kubectl annotate app user00-nginx -n argocd \
+    argocd-image-updater.argoproj.io/image-list=docker.io/nexweb1/nginx \
+    argocd-image-updater.argoproj.io/my-image.update-strategy=latest
+>>>>>>> 283532a (Modify application.yaml)
