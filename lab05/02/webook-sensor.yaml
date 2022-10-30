@@ -1,0 +1,72 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Sensor
+metadata:
+  name: user00-webhook
+spec:
+  template:
+    serviceAccountName: operate-workflow-sa
+  dependencies:
+    - name: test-dep
+      eventSourceName: webhook
+      eventName: example
+      filters:
+        data:
+        - path: body.ref # Eventsource body.X-GitHub-Event  already filters for create but just in case ...
+          type: string
+          value:
+          - "refs/heads/hello"
+  triggers:
+    - template:
+        name: webhook-workflow-trigger
+        k8s:
+          operation: create
+          source:
+            resource:
+              apiVersion: argoproj.io/v1alpha1
+              kind: Workflow
+              metadata:
+                generateName: user00-webhook-
+              spec:
+                entrypoint: main
+                arguments:
+                  parameters:
+                    - name: cloneUrl
+                    - name: revision
+                    - name: commitId
+                    - name: message
+                templates:
+                  - name: main 
+                    steps:
+                      - - name: git-clone 
+                          templateRef: 
+                            name: webhook-wf-template
+                            template: git-clone
+                          arguments:
+                            parameters:
+                              - name: cloneUrl # URL for the repo to be patched
+                                value: "{{workflow.parameters.cloneUrl}}"                    
+                              - name: revision
+                                value: "{{workflow.parameters.revision}}"
+                              - name: commitId 
+                                value: "{{workflow.parameters.commitId}}" 
+                              - name: message 
+                                value: "{{workflow.parameters.message}}"  
+          parameters:
+            - src: # cloneUrl
+                dependencyName: test-dep
+                dataTemplate: >-
+                  {{ .Input.body.repository.clone_url  | replace "application-" "manifest-" }}
+              dest: spec.arguments.parameters.0.value
+            - src: # branchName
+                dependencyName: test-dep
+                dataKey: body.ref
+              dest: spec.arguments.parameters.1.value
+            - src: # meta
+                dependencyName: test-dep
+                dataKey: body.head_commit.id
+              dest: spec.arguments.parameters.2.value    
+            - src: # meta
+                dependencyName: test-dep
+                dataTemplate: >-
+                  {{ .Input.body.ref  | replace "refs/heads/" "" }}
+              dest: spec.arguments.parameters.3.value  

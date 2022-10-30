@@ -1,0 +1,39 @@
+apiVersion: argoproj.io/v1alpha1
+kind: WorkflowTemplate
+metadata:
+  name: webhook-wf-template
+spec:
+  templates:
+  - name: git-clone
+    inputs:
+      parameters:
+        - name: cloneUrl # URL for the repo to be patched
+          value: "{{workflow.parameters.cloneUrl}}"                    
+        - name: revision
+          value: "{{workflow.parameters.revision}}"
+        - name: commitId 
+          value: "{{workflow.parameters.commitId}}" 
+        - name: message 
+          value: "{{workflow.parameters.message}}"                   
+      artifacts:
+      - name: source
+        path: /src
+        git:
+          repo: "{{inputs.parameters.cloneUrl}}"
+          revision: "{{inputs.parameters.revision}}"
+    container:
+      image: alpine/git
+      command: [sh, -c]
+      args: ["
+        cd /src && git status && ls -l && git rev-parse --short HEAD > /tmp/git-commit;
+        ls -al
+        "]
+    outputs:
+      artifacts:
+        - name: source
+          path: /src
+      parameters:
+        - name: tag
+          valueFrom:
+            path: /tmp/git-commit
+ 

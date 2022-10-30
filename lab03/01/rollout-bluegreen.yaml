@@ -1,6 +1,5 @@
-apiVersion: argoproj.io/v1alpha1 # apps/v1 대신 argoproj.io/v1alpha1를 사용한다.
+apiVersion: argoproj.io/v1alpha1 
 kind: Rollout # Deployment 대신 Rollout을 사용한다.
-# ==== 이 아래의 내용은 기존 Deployment와 동일하게 작성한다. ====
 metadata:
   name: rollout-bluegreen
 spec:
@@ -24,14 +23,11 @@ spec:
           requests:
             memory: 32Mi
             cpu: 5m
-# ==== 이 위의 내용은 기존 Deployment와 동일하게 작성한다. ====
   strategy:
     blueGreen: 
       # activeService는 Green이 Blue로 승격 시 새 템플릿 해시로 업데이트 할 Service를 지정한다.
-      # 이 필드는 blueGreen 업데이트 전략에 필수값이다.
       activeService: rollout-bluegreen-active
       # previewService는 Green이 Blue로 승격 되기 전에 새 템플릿 해시로 업데이트 할 Service를 지정한다.
-      # 이를 통해 프로덕션 트래픽을 제공하지 않고 미리보기 스택을 통해 테스트 해볼 수 있다.
       # 이 필드는 선택 사항이다.
       previewService: rollout-bluegreen-preview
       # autoPromotionEnabled는 승격 직전에 롤아웃을 일시 중지하여 새 스택의 승격을 자동으로 비활성화한다.

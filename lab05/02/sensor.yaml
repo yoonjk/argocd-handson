@@ -1,7 +1,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Sensor
 metadata:
-  name: webhook
+  name: user00-webhook
 spec:
   template:
     serviceAccountName: operate-workflow-sa
@@ -25,55 +25,48 @@ spec:
               apiVersion: argoproj.io/v1alpha1
               kind: Workflow
               metadata:
-                generateName: webhook-
+                generateName: user00-webhook-
               spec:
-                entrypoint: whalesay
-                onExit: exit-handler
+                entrypoint: git-clone
                 arguments:
                   parameters:
                     - name: cloneUrl
-                    - name: branchName
+                    - name: revision
                     - name: commitId
                     - name: message
-                    - name: notifcationUrl
-                      value: "https://hooks.slack.com/services/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"
                 templates:
-                - name: whalesay
+                - name: git-clone
                   inputs:
                     parameters:
                       - name: cloneUrl # URL for the repo to be patched
                         value: "{{workflow.parameters.cloneUrl}}"                    
-                      - name: branchName
-                        value: "{{workflow.parameters.branchName}}"
+                      - name: revision
+                        value: "{{workflow.parameters.revision}}"
                       - name: commitId 
                         value: "{{workflow.parameters.commitId}}" 
                       - name: message 
                         value: "{{workflow.parameters.message}}"                        
-                      - name: notifcationUrl 
-                        value: "{{workflow.parameters.notifcationUrl}}"   
+                    artifacts:
+                    - name: source
+                      path: /src
+                      git:
+                        repo: "{{inputs.parameters.cloneUrl}}"
+                        revision: "{{inputs.parameters.revision}}"
                   container:
-                    image: docker/whalesay:latest
-                    command: [cowsay]
-                    args: ["{{inputs.parameters.cloneUrl}}", "{{inputs.parameters.branchName}}"]
-                - name: exit-handler
-                  container:
-                    image: curlimages/curl
+                    image: alpine/git
                     command: [sh, -c]
-                    args: [
-                      "curl -X POST -H -H 'Content-type: application/json' --data '{
-                        \"text\": \"{{workflow.name}} finished\",
-                        \"blocks\": [
-                          {
-                            \"type\": \"section\",
-                            \"text\": {
-                              \"type\": \"mrkdwn\",
-                              \"text\": \"Workflow app {{workflow.name}} {{workflow.status}}\",
-                            }
-                          }
-                        ]
-                      }'
-                      https://hooks.slack.com/services/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"
-                    ]
+                    args: ["
+                      cd /src && git status && ls -l && git rev-parse --short HEAD > /tmp/git-commit;
+                      ls -al
+                      "]
+                  outputs:
+                    artifacts:
+                      - name: source
+                        path: /src
+                    parameters:
+                      - name: tag
+                        valueFrom:
+                          path: /tmp/git-commit
           parameters:
             - src: # cloneUrl
                 dependencyName: test-dep

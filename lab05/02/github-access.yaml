@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: user00-github-access
+type: Opaque
+stringData:
+  token: "12345678"
+

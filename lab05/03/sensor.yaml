@@ -1,0 +1,111 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Sensor
+metadata:
+  name: user00-webhook
+spec:
+  template:
+    serviceAccountName: operate-workflow-sa
+  dependencies:
+    - name: test-dep
+      eventSourceName: webhook
+      eventName: example
+      filters:
+        data:
+        - path: body.ref # Eventsource body.X-GitHub-Event  already filters for create but just in case ...
+          type: string
+          value:
+          - "refs/heads/hello"
+  triggers:
+    - template:
+        name: webhook-workflow-trigger
+        argoWorkflow:
+          operation: submit
+          source:
+            resource:
+              apiVersion: argoproj.io/v1alpha1
+              kind: Workflow
+              metadata:
+                generateName: user00-webhook-
+              spec:
+                entrypoint: whalesay
+                onExit: exit-handler
+                arguments:
+                  parameters:
+                    - name: cloneUrl
+                    - name: revision
+                    - name: commitId
+                    - name: message
+                    - name: slackUrl
+                      value: "https://hooks.slack.com/services/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"
+                templates:
+                - name: whalesay
+                  inputs:
+                    parameters:
+                      - name: cloneUrl # URL for the repo to be patched
+                        value: "{{workflow.parameters.cloneUrl}}"                    
+                      - name: revision
+                        value: "{{workflow.parameters.revision}}"
+                      - name: commitId 
+                        value: "{{workflow.parameters.commitId}}" 
+                      - name: message 
+                        value: "{{workflow.parameters.message}}"                        
+                    artifacts:
+                    - name: source
+                      path: /src
+                      git:
+                        repo: "{{inputs.parameters.cloneUrl}}"
+                        revision: "{{inputs.parameters.revision}}"
+                  container:
+                    image: alpine/git
+                    command: [sh, -c]
+                    args: ["cd /src && git status && ls -l && git rev-parse --short HEAD > /tmp/git-commit"]
+                  outputs:
+                    artifacts:
+                      - name: source
+                        path: /src
+                    parameters:
+                      - name: tag
+                        valueFrom:
+                          path: /tmp/git-commit
+                - name: exit-handler
+                  inputs: 
+                    parameters: 
+                      - name: slackUrl
+                        value: "{{workflow.parameters.slackUrl}}"  
+                  container:
+                    image: curlimages/curl
+                    command: [sh, -c]
+                    args: [
+                      "curl -X POST -H 'Content-type: application/json' --data '{
+                        \"text\": \"{{workflow.name}} finished\",
+                        \"blocks\": [
+                          {
+                            \"type\": \"section\",
+                            \"text\": {
+                              \"type\": \"mrkdwn\",
+                              \"text\": \"Workflow app {{workflow.name}} {{workflow.status}}\",
+                            }
+                          }
+                        ]
+                      }'
+                      {{inputs.parameters.slackUrl}}
+                      "]
+          parameters:
+            - src: # cloneUrl
+                dependencyName: test-dep
+                dataTemplate: >-
+                  {{ .Input.body.repository.clone_url  | replace "application-" "manifest-" }}
+              dest: spec.arguments.parameters.0.value
+            - src: # branchName
+                dependencyName: test-dep
+                dataKey: body.ref
+              dest: spec.arguments.parameters.1.value
+            - src: # meta
+                dependencyName: test-dep
+                dataKey: body.head_commit.id
+              dest: spec.arguments.parameters.2.value    
+            - src: # meta
+                dependencyName: test-dep
+                dataTemplate: >-
+                  {{ .Input.body.ref  | replace "refs/heads/" "" }}
+              dest: spec.arguments.parameters.3.value  

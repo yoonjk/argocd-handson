@@ -1,0 +1,51 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Sensor
+metadata:
+  name: user00-kafka
+spec:
+  template:
+    serviceAccountName: operate-workflow-sa
+  dependencies:
+    - name: test-dep
+      eventSourceName: user00-kafka
+      eventName: user00-event 
+  triggers:
+    - template:
+        name: user00-kafka-workflow-trigger
+        k8s:
+          operation: create
+          source:
+            resource:
+              apiVersion: argoproj.io/v1alpha1
+              kind: Workflow
+              metadata:
+                generateName: user00-kafka-workflow-
+              spec:
+                entrypoint: whalesay
+                arguments:
+                  parameters:
+                  - name: message
+                    # this is the value that should be overridden
+                    value: hello world
+                templates:
+                - name: whalesay
+                  inputs:
+                    parameters:
+                    - name: message
+                  container:
+                    image: docker/whalesay:latest
+                    command: [cowsay]
+                    args: ["{{inputs.parameters.message}}"]
+                    resources:
+                      requests:
+                        cpu: 100m
+                        memory: 50Mi
+                      limits: 
+                        cpu: 100m
+                        memory: 50Mi
+          parameters:
+            - src:
+                dependencyName: test-dep
+                dataTemplate: "{{ .Input.body | b64dec }}"
+              dest: spec.arguments.parameters.0.value
+

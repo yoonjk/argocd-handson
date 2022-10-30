@@ -1,0 +1,37 @@
+apiVersion: argoproj.io/v1alpha1
+kind: EventSource
+metadata:
+  name: user00-kafka
+spec:
+  eventBusName: default
+  kafka:
+    user00-event:
+      # kafka broker url
+      url: kafka.default:9092
+      # name of the kafka topic
+      topic: demo
+      # jsonBody specifies that all event body payload coming from this
+      # source will be JSON
+      jsonBody: false
+      # partition id
+      partition: "1"
+      # optional backoff time for connection retries.
+      # if not provided, default connection backoff time will be used.
+      connectionBackoff:
+        # duration in nanoseconds, or strings like "3s", "2m". 
+        # following value is 10 seconds
+        duration: 10s
+        # how many backoffs
+        steps: 5
+        # factor to increase on each step.
+        # setting factor > 1 makes backoff exponential.
+        factor: 2
+        jitter: 0.2
+      # Use a consumer group, 
+      # if this is used you do not need to specify a "partition: <id>"
+      consumerGroup:
+        groupName: test-group
+        oldest: false
+        rebalanceStrategy: range
+      limitEventsPerSecond: 1
+      version: "2.5.0"

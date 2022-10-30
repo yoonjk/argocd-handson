@@ -1,30 +1,30 @@
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: operate-workflow-sa
+  namespace: argo-events
+  name: workflow-pods-sa
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
-  name: operate-workflow-role
-
+  name: workflow-pods-role
 rules:
   - apiGroups:
-      - argoproj.io
+      - ""
     verbs:
       - "*"
     resources:
-      - workflows
+      - pods
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
-  name: operate-workflow-role-binding
+  name: workflow-pods-role-binding
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
-  name: operate-workflow-role
+  name: workflow-pods-role
 subjects:
   - kind: ServiceAccount
-    name: operate-workflow-sa
-    namespace: argo
+    name: workflow-pods-sa
+    namespace: argo-events

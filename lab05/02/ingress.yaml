@@ -1,13 +1,13 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: ingress-eventlistener
+  name: user00-eventlistener
   annotations:
     kubernetes.io/ingress.class: nginx
     nginx.ingress.kubernetes.io/ssl-redirect: "false"
 spec:
   rules:
-    - host: eventlistener.159.122.179.241.nip.io
+    - host: user00-eventlistener.159.122.179.241.nip.io
       http:
         paths:
           - path: /example

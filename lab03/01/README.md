@@ -8,11 +8,15 @@ kubectl apply -n argo-rollouts \
 ## nstall Argo Rollouts Kubectl plugin
 Argo 롤아웃 Kubectl 플러그인을 사용하면 대시보드 UI 열기와 같은 kubectl CLI를 사용하여 롤아웃 특정 명령을 실행할 수 있습니다. 이렇게 하면 롤아웃과 더 쉽게 상호 작용할 수 있습니다.
 ```bash
+# linux
 curl -Lv https://github.com/argoproj/argo-rollouts/releases/latest/download/kubectl-argo-rollouts-darwin-amd64 -o /usr/local/bin/kubectl-argo-rollouts
 
 ls -al /usr/local/bin/kubectl-argo-rollouts
 chmod +x /usr/local/bin/kubectl-argo-rollout
 ls -al /usr/local/bin/kubectl-argo-rollouts
+
+mac
+brew install argoproj/tap/kubectl-argo-rollouts 
 
 kubectl argo rollouts version
 ```
