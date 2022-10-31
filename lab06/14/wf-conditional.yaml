@@ -1,0 +1,70 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: user00-wf-conditional-
+spec:
+  entrypoint: dag-template
+  arguments:
+    parameters:
+    - name: messageA
+      value: A
+    - name: messageB
+      value: B
+
+  templates:
+  - name: dag-template
+    inputs:
+      parameters:
+      - name: messageA
+      - name: messageB
+
+    dag:
+      tasks:
+      - name: task1
+        arguments:
+          parameters: [{name: text, value: "{{inputs.parameters.messageA}}" }]
+        template: task-decision
+      - name: taskA
+        template: task-A
+        dependencies: [task1]
+        when: "{{tasks.task1.outputs.result}} == A"
+      - name: taskB
+        template: task-B
+        dependencies: [task1]
+        when: "{{tasks.task1.outputs.result}} == B"
+      - name: task2
+        arguments:
+          parameters: [{name: text, value: "{{inputs.parameters.messageB}}" }]
+        template: task-decision
+      - name: taskA2
+        template: task-A
+        dependencies: [task2]
+        when: "{{tasks.task2.outputs.result}} == A"
+      - name: taskB2
+        template: task-B
+        dependencies: [task2]
+        when: "{{tasks.task2.outputs.result}} == B"
+  - name: task-decision
+    inputs:
+      parameters:
+      - name: text
+    script:
+      image: python:3.8-slim
+      command: [python]
+      source: |
+        p = "{{inputs.parameters.text}}"
+        print(p)
+
+  - name: task-A
+    script:
+      image: python:3.8-slim
+      command: [python]
+      source: |
+        print("Task A was executed.")
+
+  - name: task-B
+    script:
+      image: python:3.8-slim
+      command: [python]
+      source: |
+        print("Task B was executed.")

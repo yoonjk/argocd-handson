@@ -1,0 +1,58 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: conditional-parameter-
+spec:
+  entrypoint: main
+  arguments:
+    parameters: 
+      - name: message
+        value: "tails"
+  templates:
+    - name: main
+      inputs: 
+        parameters:
+          - name: message
+      steps:
+        - - name: flip-coin
+            template: flip-coin
+            arguments:
+              parameters:
+                - name: message
+                  value: "{{inputs.parameters.message}}"
+        - - name: heads
+            template: heads
+            when: "{{steps.flip-coin.outputs.result}} == heads"
+          - name: tails
+            template: tails
+            when: "{{steps.flip-coin.outputs.result}} == tails"
+      outputs:
+        parameters:
+          - name: stepresult
+            valueFrom:
+              expression: "steps['flip-coin'].outputs.result == 'heads' ? steps.heads.outputs.result : steps.tails.outputs.result"
+
+    - name: flip-coin
+      inputs:
+        parameters:
+          - name: message
+      script:
+        image: python:alpine3.6
+        command: [ python ]
+        source: |
+          import random
+          print("heads" if '{{inputs.parameters.message}}' == 'heads' else "tails")
+
+    - name: heads
+      script:
+        image: python:alpine3.6
+        command: [ python ]
+        source: |
+          print("heads")
+
+    - name: tails
+      script:
+        image: python:alpine3.6
+        command: [ python ]
+        source: |
+          print("tails")
