@@ -1,0 +1,25 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: suspend-template-
+spec:
+  entrypoint: suspend
+  templates:
+  - name: suspend
+    steps:
+    - - name: build
+        template: whalesay
+    - - name: approve
+        template: approve
+    - - name: release
+        template: whalesay
+
+  - name: approve
+    suspend: 
+    activeDeadlineSeconds: 60          # terminate container template after 10 seconds
+
+  - name: whalesay
+    container:
+      image: docker/whalesay
+      command: [cowsay]
+      args: ["hello world"]

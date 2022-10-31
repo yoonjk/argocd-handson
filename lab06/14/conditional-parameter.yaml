@@ -1,7 +1,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
-  generateName: conditional-parameter-
+  generateName: user00-conditional-parameter-
 spec:
   entrypoint: main
   arguments:
@@ -30,7 +30,8 @@ spec:
         parameters:
           - name: stepresult
             valueFrom:
-              expression: "steps['flip-coin'].outputs.result == 'heads' ? steps.heads.outputs.result : steps.tails.outputs.result"
+              expression: "steps['flip-coin'].outputs.result == 'heads'  
+                ? steps.heads.outputs.result : steps.tails.outputs.result"
 
     - name: flip-coin
       inputs:
@@ -56,3 +57,4 @@ spec:
         command: [ python ]
         source: |
           print("tails")
+
