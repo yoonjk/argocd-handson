@@ -1,10 +1,4 @@
 
-
-## Install Argo
-kubectl create ns argo
-kubectl apply -n argo -f https://raw.githubusercontent.com/argoproj/argo-workflows/master/manifests/quick-start-postgres.yaml
-
-## port-forward 후  https로 접속해야함 
 https://localhost:8090/workflows
 
 
@@ -18,8 +12,26 @@ kubectl create secret docker-registry docker-credentials \
 --docker-password=password \
 --docker-email=test@gmail.com \
 -n argo
-
+## Authorization for Git Push 
 kubectl create secret generic github-basic \
 --namespace=argo \
 --from-literal=username=username \
 --from-literal=personal_access_token=my-personal-token
+
+## User 추가 
+kubectl edit cm  argocd-cm -n argo
+
+kubectl patch cm argocd-cm -n argocd \
+--type merge \
+-p '{"data": {"accounts.user00": "apiKey, login"}}'
+
+kubectl patch cm argocd-cm -n argocd \
+--type merge \
+-p '{"data": {"accounts.user01": "apiKey, login"}}'
+
+kubectl patch cm argocd-cm -n argocd \
+--type merge \
+-p '{"data": {"accounts.user02": "apiKey, login"}}'
+
+- Add Rbac for New Account 
+kubectl get configmap argocd-cm -n argocd -o yaml > argocd-cm.yml

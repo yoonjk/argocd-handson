@@ -1,0 +1,15 @@
+
+  policy.csv: |
+    p, role:admin-role, applications, *, */*, allow
+    p, role:admin-role, projects, get, *, allow
+    p, role:admin-role, repositories, get, *, allow
+    p, role:admin-role, repositories, create, *, allow
+    p, role:admin-role, repositories, update, *, allow
+    p, role:admin-role, repositories, delete, *, allow
+    p, role:admin-role, clusters, get, *, allow
+    p, role:user01, applications, *, user01/*, allow
+    p, role:user01, projects, get, user01, allow
+    p, role:user01, repositories, get, *, allow
+    p, role:user01, clusters, get, *, allow
+    p, role:none, *, *, */*, deny
+    g, user01, role:admin

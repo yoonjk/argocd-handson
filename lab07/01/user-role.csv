@@ -1,0 +1,6 @@
+    p, role:user-role, applications, *, */*, allow
+    p, role:user-role, projects, get, *, allow     
+    p, role:user-role, repositories, get, *, allow     
+    p, role:user-role, clusters, get, *, allow
+    p, role:none, *, *, */*, deny     
+    g, user01, role:user-role
