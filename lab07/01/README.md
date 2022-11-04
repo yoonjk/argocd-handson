@@ -35,3 +35,6 @@ kubectl patch cm argocd-cm -n argocd \
 
 - Add Rbac for New Account 
 kubectl get configmap argocd-cm -n argocd -o yaml > argocd-cm.yml
+
+- Generate Token
+argocd account generate-token --account user01
