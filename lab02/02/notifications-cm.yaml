@@ -1,0 +1,3 @@
+data:
+  service.slack: |
+    token: $slack-token
