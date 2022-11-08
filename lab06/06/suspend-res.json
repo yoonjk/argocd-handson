@@ -1,0 +1,322 @@
+{
+    "metadata": {
+      "resourceVersion": "470693"
+    },
+    "items": [
+      {
+        "metadata": {
+          "name": "suspend-template-szvd7",
+          "generateName": "suspend-template-",
+          "namespace": "argo",
+          "uid": "57870416-33b1-44bf-b8b3-e562bbc8a1bd",
+          "resourceVersion": "470508",
+          "generation": 4,
+          "creationTimestamp": "2022-11-08T00:38:21Z",
+          "labels": {
+            "workflows.argoproj.io/phase": "Running"
+          },
+          "annotations": {
+            "workflows.argoproj.io/pod-name-format": "v2"
+          },
+          "managedFields": [
+            {
+              "manager": "kubectl-create",
+              "operation": "Update",
+              "apiVersion": "argoproj.io/v1alpha1",
+              "time": "2022-11-08T00:38:21Z",
+              "fieldsType": "FieldsV1",
+              "fieldsV1": {
+                "f:metadata": {
+                  "f:generateName": {
+                    
+                  }
+                }
+              }
+            },
+            {
+              "manager": "workflow-controller",
+              "operation": "Update",
+              "apiVersion": "argoproj.io/v1alpha1",
+              "time": "2022-11-08T00:38:21Z",
+              "fieldsType": "FieldsV1",
+              "fieldsV1": {
+                "f:metadata": {
+                  "f:annotations": {
+                    ".": {
+                      
+                    },
+                    "f:workflows.argoproj.io/pod-name-format": {
+                      
+                    }
+                  },
+                  "f:labels": {
+                    ".": {
+                      
+                    },
+                    "f:workflows.argoproj.io/phase": {
+                      
+                    }
+                  }
+                },
+                "f:spec": {
+                  
+                },
+                "f:status": {
+                  
+                }
+              }
+            }
+          ]
+        },
+        "spec": {
+          "templates": [
+            {
+              "name": "suspend",
+              "inputs": {
+                
+              },
+              "outputs": {
+                
+              },
+              "metadata": {
+                
+              },
+              "steps": [
+                [
+                  {
+                    "name": "build",
+                    "template": "whalesay",
+                    "arguments": {
+                      
+                    }
+                  }
+                ],
+                [
+                  {
+                    "name": "approve",
+                    "template": "approve",
+                    "arguments": {
+                      
+                    }
+                  }
+                ],
+                [
+                  {
+                    "name": "delay",
+                    "template": "delay",
+                    "arguments": {
+                      
+                    }
+                  }
+                ],
+                [
+                  {
+                    "name": "release",
+                    "template": "whalesay",
+                    "arguments": {
+                      
+                    }
+                  }
+                ]
+              ]
+            },
+            {
+              "name": "approve",
+              "inputs": {
+                
+              },
+              "outputs": {
+                
+              },
+              "metadata": {
+                
+              },
+              "suspend": {
+                
+              }
+            },
+            {
+              "name": "delay",
+              "inputs": {
+                
+              },
+              "outputs": {
+                
+              },
+              "metadata": {
+                
+              },
+              "suspend": {
+                "duration": "20"
+              }
+            },
+            {
+              "name": "whalesay",
+              "inputs": {
+                
+              },
+              "outputs": {
+                
+              },
+              "metadata": {
+                
+              },
+              "container": {
+                "name": "",
+                "image": "docker/whalesay",
+                "command": [
+                  "cowsay"
+                ],
+                "args": [
+                  "hello world"
+                ],
+                "resources": {
+                  
+                }
+              }
+            }
+          ],
+          "entrypoint": "suspend",
+          "arguments": {
+            
+          }
+        },
+        "status": {
+          "phase": "Running",
+          "startedAt": "2022-11-08T00:38:21Z",
+          "finishedAt": null,
+          "progress": "1/2",
+          "nodes": {
+            "suspend-template-szvd7": {
+              "id": "suspend-template-szvd7",
+              "name": "suspend-template-szvd7",
+              "displayName": "suspend-template-szvd7",
+              "type": "Steps",
+              "templateName": "suspend",
+              "templateScope": "local/suspend-template-szvd7",
+              "phase": "Running",
+              "startedAt": "2022-11-08T00:38:21Z",
+              "finishedAt": null,
+              "progress": "1/2",
+              "children": [
+                "suspend-template-szvd7-2393994429"
+              ]
+            },
+            "suspend-template-szvd7-1253263432": {
+              "id": "suspend-template-szvd7-1253263432",
+              "name": "suspend-template-szvd7[1]",
+              "displayName": "[1]",
+              "type": "StepGroup",
+              "templateScope": "local/suspend-template-szvd7",
+              "phase": "Running",
+              "boundaryID": "suspend-template-szvd7",
+              "startedAt": "2022-11-08T00:38:59Z",
+              "finishedAt": null,
+              "progress": "0/1",
+              "children": [
+                "suspend-template-szvd7-824075835"
+              ]
+            },
+            "suspend-template-szvd7-1661473431": {
+              "id": "suspend-template-szvd7-1661473431",
+              "name": "suspend-template-szvd7[0].build",
+              "displayName": "build",
+              "type": "Pod",
+              "templateName": "whalesay",
+              "templateScope": "local/suspend-template-szvd7",
+              "phase": "Succeeded",
+              "boundaryID": "suspend-template-szvd7",
+              "startedAt": "2022-11-08T00:38:21Z",
+              "finishedAt": "2022-11-08T00:38:51Z",
+              "progress": "1/1",
+              "resourcesDuration": {
+                "cpu": 21,
+                "memory": 13
+              },
+              "outputs": {
+                "artifacts": [
+                  {
+                    "name": "main-logs",
+                    "s3": {
+                      "key": "suspend-template-szvd7/suspend-template-szvd7-whalesay-1661473431/main.log"
+                    }
+                  }
+                ],
+                "exitCode": "0"
+              },
+              "children": [
+                "suspend-template-szvd7-1253263432"
+              ],
+              "hostNodeName": "10.144.222.36"
+            },
+            "suspend-template-szvd7-2393994429": {
+              "id": "suspend-template-szvd7-2393994429",
+              "name": "suspend-template-szvd7[0]",
+              "displayName": "[0]",
+              "type": "StepGroup",
+              "templateScope": "local/suspend-template-szvd7",
+              "phase": "Succeeded",
+              "boundaryID": "suspend-template-szvd7",
+              "startedAt": "2022-11-08T00:38:21Z",
+              "finishedAt": "2022-11-08T00:38:59Z",
+              "progress": "1/2",
+              "resourcesDuration": {
+                "cpu": 21,
+                "memory": 13
+              },
+              "children": [
+                "suspend-template-szvd7-1661473431"
+              ]
+            },
+            "suspend-template-szvd7-824075835": {
+              "id": "suspend-template-szvd7-824075835",
+              "name": "suspend-template-szvd7[1].approve",
+              "displayName": "approve",
+              "type": "Suspend",
+              "templateName": "approve",
+              "templateScope": "local/suspend-template-szvd7",
+              "phase": "Running",
+              "boundaryID": "suspend-template-szvd7",
+              "startedAt": "2022-11-08T00:38:59Z",
+              "finishedAt": null,
+              "progress": "0/1"
+            }
+          },
+          "conditions": [
+            {
+              "type": "PodRunning",
+              "status": "False"
+            }
+          ],
+          "resourcesDuration": {
+            "cpu": 21,
+            "memory": 13
+          },
+          "artifactRepositoryRef": {
+            "configMap": "artifact-repositories",
+            "key": "default-v1",
+            "namespace": "argo",
+            "artifactRepository": {
+              "archiveLogs": true,
+              "s3": {
+                "endpoint": "minio:9000",
+                "bucket": "my-bucket",
+                "insecure": true,
+                "accessKeySecret": {
+                  "name": "my-minio-cred",
+                  "key": "accesskey"
+                },
+                "secretKeySecret": {
+                  "name": "my-minio-cred",
+                  "key": "secretkey"
+                }
+              }
+            }
+          },
+          "artifactGCStatus": {
+            "notSpecified": true
+          }
+        }
+      }
+    ]
+  }
