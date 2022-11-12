@@ -1,3 +1,10 @@
+## Argo CD Server Login
+argocd login localhost:8080 --username admin --password $ARGOCD_SERVER_PASSWD --insecure
+
+## Argo CD account update password
+argocd account update-password --account user00
+argocd login localhost:8080 --username user00 --password $ARGOCD_PASSWORD --insecure
+
 ## User 추가 
 ```bash
 kubectl edit cm  argocd-cm -n argocd
