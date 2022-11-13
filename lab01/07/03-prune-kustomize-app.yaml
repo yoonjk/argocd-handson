@@ -7,18 +7,14 @@ spec:
   destination:
     namespace: user00
     server: "https://kubernetes.default.svc"
-  project: user00-dev-project
+  project: default
   source: 
     path: kustomize-guestbook 
     repoURL: "https://github.com/yoonjk/argocd-demo.git"
     targetRevision: master 
-#    kustomize: 
-#      namePrefix: staging-
-#      commonLabels:
-#        app: demo
   syncPolicy:
-    syncOptions:
-    - CreateNamespace=true
+    automated: 
+      prune: true
 
     
 

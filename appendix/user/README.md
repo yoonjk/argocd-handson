@@ -7,6 +7,10 @@ argocd login localhost:8080 --username user00 --password $ARGOCD_PASSWORD --inse
 
 ## User 추가 
 ```bash
+kubectl patch cm argocd-cm -n argocd --type merge -p '{"data": {"accounts.user01": "apiKey,login"}}'
+
+or
+
 kubectl edit cm  argocd-cm -n argocd
 
 apiVersion: v1

@@ -1,0 +1,12 @@
+apiVersion: v1 
+kind: Secret 
+metadata: 
+  name: user00-private-repo-https
+  namespace: argocd 
+  labels: 
+    argocd.argoproj.io/secret-type: repository 
+stringData: 
+  type: git 
+  url : https://github.com/yoonjk/argocd-demo-private.git 
+  password: your personal access token
+  username: yoonjk
