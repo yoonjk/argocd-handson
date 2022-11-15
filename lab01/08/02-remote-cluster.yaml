@@ -1,0 +1,22 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  namespace: argocd
+  name: remote-cluster
+  labels:
+    argocd.argoproj.io/secret-type: cluster
+    environment: "staging"
+    provider: "digitalocean"
+    non-prod: "true"
+type: Opaque
+stringData:
+  name: remote-cluster
+  server: https://sdfadfa.k8s.sdfsf.com
+  config: |
+    {
+      "bearerToken": "",
+      "tlsClientConfig": {
+        "insecure": false,
+        "caData": ""
+      }
+    }

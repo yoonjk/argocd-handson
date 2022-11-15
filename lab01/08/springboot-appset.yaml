@@ -1,0 +1,27 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: springboot-appset-git-directories
+spec:
+  generators:
+    - git:
+        repoURL: https://github.com/dhenne/spring-boot-service
+        revision: HEAD
+        directories:
+          - path: "deployment/helm/*"
+  template:
+    metadata:
+      name: '{{`{{path.basename}}`}}'
+    spec:
+      project: default
+      source:
+        repoURL: https://github.com/dhenne/spring-boot-service
+        path: '{{`{{path}}`}}'
+        targetRevision: HEAD
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: default
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true

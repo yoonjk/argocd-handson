@@ -1,0 +1,38 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: multi-apps
+  namespace: argocd
+spec:
+  generators:
+  - list:
+      elements:
+      - clusterUrl: https://kubernetes.default.svc
+        revision: master
+        path: helmcharts/security-policy-charts/falco
+        appName: falco
+        repoURL: https://github.com/mabusaa/argocd-example-apps.git
+        namespace: multi-apps-demo
+      - clusterUrl: https://kubernetes.default.svc
+        revision: master
+        path: helmcharts/security-policy-charts/kyverno
+        appName: kyverno
+        repoURL: https://github.com/mabusaa/argocd-example-apps.git
+        namespace: multi-apps-demo     
+  template:
+    metadata:
+      name: '{{appName}}'
+      namespace: argocd
+    spec:
+      project: default
+      source:
+        repoURL: '{{repoURL}}'
+        targetRevision: '{{revision}}'
+        path: '{{path}}'
+      destination:
+        server: '{{clusterUrl}}'
+        namespace: '{{namespace}}'
+      syncPolicy:
+         automated: {}
+         syncOptions:
+          - CreateNamespace=true
