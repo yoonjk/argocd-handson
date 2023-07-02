@@ -1,0 +1,31 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: springboot-appset-git-files
+  namespace: argocd
+spec:
+  generators:
+    - git:
+        repoURL: https://github.com/dhenne/spring-boot-service
+        revision: HEAD
+        files:
+          - path: "deployment/multisource-files/**.yaml"
+  template:
+    metadata:
+      name: '{{`{{name}}`}}'
+    spec:
+      project: default
+      source:
+        repoURL: https://dhenne.github.io/helm-charts/
+        chart: spring-boot-helm-demo
+        targetRevision: 0.1.6
+        helm:
+          values: |-
+            {{`{{values}}`}}
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: default
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true

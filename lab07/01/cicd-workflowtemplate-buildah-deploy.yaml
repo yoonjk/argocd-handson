@@ -1,0 +1,179 @@
+apiVersion: argoproj.io/v1alpha1
+kind: WorkflowTemplate
+metadata:
+  name: cicd-workflow-template
+  annotations:
+    workflows.argoproj.io/description: |
+      This workflow is implementing CICD for simple GO API.
+spec: 
+  serviceAccountName: workflow-executor-sa
+  arguments: 
+    parameters:
+      - name: cloneUrl 
+        value: test
+      - name: revision 
+        value: hello        
+      - name: commitId
+        value: dev
+      - name: message
+        value: test        
+      - name: pathToDockerfile
+        value : deployment/Dockerfile
+      - name: imageUrl
+        value: docker.io/nexweb1/sample
+      - name: imageTag
+        value: dev
+      - name: deploymentFile
+        value: deployment/Kucstomization.yaml
+  entrypoint: main
+  podGC:
+    strategy: OnPodSuccess  
+
+  templates: 
+    - name: main 
+      dag: 
+        tasks: 
+          - name: git-clone 
+            template: git-clone 
+            arguments:
+              parameters:
+                - name: cloneUrl # URL for the repo to be patched
+                  value: "{{workflow.parameters.cloneUrl}}"                    
+                - name: revision
+                  value: "{{workflow.parameters.revision}}"
+                - name: commitId 
+                  value: "{{workflow.parameters.commitId}}" 
+                - name: message 
+                  value: "{{workflow.parameters.message}}"              
+          - name: maven-build
+            template: maven-build
+            arguments:
+              artifacts:
+              - name: source
+                from: "{{task.git-clone.outputs.artifacts.source}}"            
+            dependencies:
+              - git-clone 
+          - name: docker-build 
+            template: docker-build 
+            arguments:
+              artifacts:
+              - name: source
+                from: "{{task.maven-build.outputs.artifacts.source}}"
+              parameters:
+                - name: imageUrl
+                  value: "docker.io/nexweb1/sample"
+                - name: commitId
+                  value: "{{workflow.parameters.commitId}}" 
+                - name: pathToDockerfile
+                  value: "deployment/Dockerfile" 
+
+            dependencies: 
+              - maven-build 
+          - name: deploy 
+            template: deploy 
+            arguments:
+              artifacts:
+              - name: source
+                from: "{{task.docker-build.outputs.artifacts.source}}"
+              parameters:
+                - name: deploymentFile
+                  value: "deployment"                
+            dependencies: 
+              - docker-build
+    - name: git-clone 
+      inputs:
+        parameters:
+        - name: cloneUrl # URL for the repo to be patched                
+        - name: revision
+        - name: commitId 
+        - name: message 
+        artifacts:
+        - name: source
+          path: /src
+          git:
+            repo: "{{inputs.parameters.cloneUrl}}"
+            revision: "{{inputs.parameters.revision}}"
+
+      container:
+        image: alpine/git
+        command: [sh, -c]
+        args: ["cd /src && git status && ls -l && git rev-parse --short HEAD > /tmp/git-commit"]
+      outputs:
+        artifacts:
+          - name: source
+            path: /src
+        parameters:
+          - name: tag
+            valueFrom:
+              path: /tmp/git-commit      
+    - name: maven-build
+      inputs:
+        artifacts:
+        - name: source
+          path: /src
+      container:
+        image: gcr.io/cloud-builders/mvn:latest
+        command: [sh, -c]
+        args: ["cd /src && ls -a &&  mvn clean package -DskipTests"]
+      outputs:
+        artifacts:
+        - name: source
+          path: /src
+    - name: docker-build 
+      inputs:
+          artifacts:
+          - name: source
+            path: /src
+          parameters:    
+          - name: imageUrl
+          - name: commitId
+          - name: pathToDockerfile
+      container:
+          image: quay.io/buildah/stable
+          command: [ sh, -euxc ]
+          args: 
+          - |
+            buildah bud --tls-verify=true --layers -f '{{inputs.parameters.pathToDockerfile}}' -t '{{inputs.parameters.imageUrl}}:{{inputs.parameters.commitId}}' .
+            buildah push --tls-verify=true  '{{inputs.parameters.imageUrl}}:{{inputs.parameters.commitId}}'
+
+          workingDir: "/src"
+          securityContext:
+            allowPrivilegeEscalation: true
+            runAsUser: 0
+            privileged: true
+          env:
+            - name: DOCKER_CONFIG
+              value: /.docker
+          volumeMounts:
+            - name: docker-config
+              mountPath: /.docker
+            - name: varlibc
+              mountPath: /var/lib/containers
+      outputs:
+        artifacts:
+        - name: source
+          path: /src
+      volumes:
+        - name: docker-config
+          secret:
+            secretName: docker-credentials
+            items:
+              - key: .dockerconfigjson
+                path: config.json
+        - name: varlibc 
+          emptyDir: {}
+    - name: deploy
+      inputs:
+        parameters:
+          - name: deploymentFile
+        artifacts:
+          - name: source
+            path: /src
+      container:
+        name: k8s-kubectl
+        image: lachlanevenson/k8s-kubectl
+        args:
+          - apply
+          - '-k'
+          - '{{inputs.parameters.deploymentFile}}'
+        workingDir: /src
