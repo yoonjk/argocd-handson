@@ -27,6 +27,8 @@ spec:
               metadata:
                 generateName: sample-webhook-
               spec:
+                artifactRepositoryRef:
+                  configMap: artifact-repositories # or any other ConfigMap
                 arguments:
                   parameters:
                     - name: cloneUrl

@@ -7,10 +7,15 @@ metadata:
       This workflow is implementing CICD for simple GO API.
 spec: 
   serviceAccountName: workflow-executor-sa
-  volumes:               # define volume, same syntax as k8s Pod spec
-  - name: work
-    persistentVolumeClaim: 
-      claimName: cicd-workflow-pvc
+  volumeClaimTemplates:                 # define volume, same syntax as k8s Pod spec
+  - metadata:
+      name: workdir                     # name of volume claim
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      storageClassName: standard
+      resources:
+        requests:
+          storage: 256Mi   
   arguments: 
     parameters:
       - name: cloneUrl 
@@ -54,7 +59,7 @@ spec:
             arguments:
               artifacts:
               - name: source
-                from: "{{tasks.git-clone.outputs.artifacts.source}}"            
+                from: "{{task.git-clone.outputs.artifacts.source}}"            
             dependencies:
               - git-clone 
           - name: docker-build 
@@ -62,7 +67,7 @@ spec:
             arguments:
               artifacts:
               - name: source
-                from: "{{tasks.maven-build.outputs.artifacts.source}}"
+                from: "{{task.maven-build.outputs.artifacts.source}}"
               parameters:
                 - name: imageUrl
                   value: "docker.io/nexweb1/sample"
@@ -78,7 +83,7 @@ spec:
             arguments:
               artifacts:
               - name: source
-                from: "{{tasks.docker-build.outputs.artifacts.source}}"
+                from: "{{task.docker-build.outputs.artifacts.source}}"
               parameters:
                 - name: deploymentFile
                   value: "deployment"                
@@ -109,7 +114,7 @@ spec:
         parameters:
           - name: tag
             valueFrom:
-              path: /tmp/git-commit     
+              path: /tmp/git-commit      
     - name: maven-build
       inputs:
         artifacts:
@@ -123,7 +128,6 @@ spec:
         artifacts:
         - name: source
           path: /src
-
     - name: docker-build 
       inputs:
           artifacts:

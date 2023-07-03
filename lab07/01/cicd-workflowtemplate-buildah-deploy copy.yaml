@@ -106,6 +106,8 @@ spec:
         artifacts:
           - name: source
             path: /src
+            s3: 
+              key: source.tgz
         parameters:
           - name: tag
             valueFrom:
@@ -115,6 +117,8 @@ spec:
         artifacts:
         - name: source
           path: /src
+          s3: 
+            key: source.tgz
       container:
         image: gcr.io/cloud-builders/mvn:latest
         command: [sh, -c]
@@ -123,12 +127,15 @@ spec:
         artifacts:
         - name: source
           path: /src
-
+          s3: 
+            key: source.tgz
     - name: docker-build 
       inputs:
           artifacts:
           - name: source
             path: /src
+            s3: 
+              key: source.tgz 
           parameters:    
           - name: imageUrl
           - name: commitId

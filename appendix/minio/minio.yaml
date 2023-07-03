@@ -1,0 +1,58 @@
+apiVersion: apps/v1
+kind: Deployment 
+metadata:
+  labels:
+    app: minio
+  name: minio
+  namespace: argo # Change this value to match the namespace metadata.name
+spec:
+  replicas: 1
+  selector: 
+    matchLabels:
+      app: minio 
+  template: 
+    metadata: 
+      labels: 
+        app: minio 
+    spec: 
+      containers:
+        - name: minio
+          image: quay.io/minio/minio:RELEASE.2023-04-07T05-28-58Z
+          command:
+            - /bin/bash
+            - -c
+          args: 
+          - minio server /data --console-address :9001
+          volumeMounts:
+          - mountPath: /data
+            name: minio-vol # Corresponds to the `spec.volumes` Persistent Volume
+          ports:
+            - containerPort: 9000
+              hostPort: 9000
+            - containerPort: 9001
+              hostPort: 9001
+          env:
+            - name: BASE_HREF
+              value: /minio/
+      volumes:
+      - name: minio-vol
+        persistentVolumeClaim: 
+          claimName: minio-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: minio
+  namespace: argo 
+spec:
+  selector:
+    app: minio
+  ports:
+    - name: "ui-address"
+      port: 9000
+      targetPort: 9000
+      protocol: TCP
+    - name: "console-address"
+      port: 9001
+      targetPort: 9001
+      protocol: TCP
