@@ -1,7 +1,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: WorkflowTemplate
 metadata:
-  name: cicd-workflow-template
+  name: ci-workflow-template
   annotations:
     workflows.argoproj.io/description: |
       This workflow is implementing CICD for simple GO API.
