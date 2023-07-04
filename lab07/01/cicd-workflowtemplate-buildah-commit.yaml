@@ -53,8 +53,8 @@ spec:
             template: maven-build
             arguments:
               artifacts:
-              - name: source
-                from: "{{tasks.git-clone.outputs.artifacts.source}}"            
+          - name: source
+            from: "{{tasks.git-clone.outputs.artifacts.source}}"            
             dependencies:
               - git-clone 
           - name: docker-build 
@@ -70,18 +70,28 @@ spec:
                   value: "{{workflow.parameters.commitId}}" 
                 - name: pathToDockerfile
                   value: "deployment/Dockerfile" 
-
             dependencies: 
               - maven-build 
-          - name: deploy 
+          - name: commit  
             template: deploy 
             arguments:
               artifacts:
               - name: source
                 from: "{{tasks.docker-build.outputs.artifacts.source}}"
-              parameters:
+              arguments:
+                parameters:
+                - name: git-repo-revision
+                  value: main
+                - name: git-repo-path
+                  value: "/."
+                - name: git-repo-url
+                  value: https://github.com/yoonjk/sample-service-deploy.git               
                 - name: deploymentFile
-                  value: "deployment"                
+                  value: deployment/sample.yaml
+                - name: imageUrl
+                  value: "docker.io/nexweb1/sample"
+                - name: commitId
+                  value: "{{workflow.parameters.commitId}}"                
             dependencies: 
               - docker-build
     - name: git-clone 
@@ -174,18 +184,55 @@ spec:
                 path: config.json
         - name: varlibc 
           emptyDir: {}
-    - name: deploy
+    - name: commit
       inputs:
         parameters:
+          - name: git-repo-revision
+          - name: git-repo-path
+          - name: git-repo-url              
           - name: deploymentFile
+          - name: imageUrl
+          - name: commitId
+        artifacts:
+        - name: source
+          path: /manifest
+          git:
+            repo: "{{inputs.parameters.git-repo-url }}"
+            revision: "{{inputs.parameters.git-repo-revision}}"
+
+      container:
+        image: alpine/git
+        command: [sh, -euxc]
+        args: ["
+          cd /manifest; 
+
+          git clone -b {{inputs.parameters.git-repo-revision}} {{inputs.parameters.git-repo-url}};
+
+          cd sample-service-deploy;
+        
+          git config --global user.email 'nexweb1@gmail.com';
+          git config --global user.name  'yoonjk';
+          ls -al;
+          cat {{inputs.parameters.deploymentFile}} | grep -E 'image:' | awk '{print $0 }';
+          sed -i 's#{{inputs.parameters.imageUrl}}:[a-zA-Z0-9]\\+#{{inputs.parameters.imageUrl}}:{{inputs.parameters.commitId}}#g' '{{inputs.parameters.deploymentFile}}';
+          cat {{inputs.parameters.deploymentFile}} | grep -E 'image:' | awk '{print $0 }';
+  
+          git add {{inputs.parameters.deploymentFile}};
+          git commit -m '[tekton] updating {{inputs.parameters.imageUrl}} image to {{inputs.parameters.commitId}}';
+          git push https://${GITHUB_USER}:${GITHUB_PASSWORD}@github.com/yoonjk/sample-service-deploy.git
+          "]
+        env:
+        - name: GITHUB_USER
+          valueFrom:
+            secretKeyRef:
+              name: github-basic
+              key: username
+        - name: GITHUB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: github-basic
+              key: personal_access_token
+      outputs:
         artifacts:
           - name: source
-            path: /src
-      container:
-        name: k8s-kubectl
-        image: lachlanevenson/k8s-kubectl
-        args:
-          - apply
-          - '-k'
-          - '{{inputs.parameters.deploymentFile}}'
-        workingDir: /src
+            path: /manifest
