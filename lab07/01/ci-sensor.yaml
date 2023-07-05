@@ -1,7 +1,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Sensor
 metadata:
-  name: sample-webhook
+  name: sample-ci-webhook
 spec:
   template:
     serviceAccountName: operate-workflow-sa
@@ -25,7 +25,7 @@ spec:
               apiVersion: argoproj.io/v1alpha1
               kind: Workflow
               metadata:
-                generateName: sample-webhook-
+                generateName: sample-ci-webhook-
               spec:
                 artifactRepositoryRef:
                   configMap: artifact-repositories # or any other ConfigMap
@@ -36,7 +36,7 @@ spec:
                     - name: commitId
                     - name: message
                 workflowTemplateRef:
-                  name: cicd-workflow-template
+                  name: ci-workflow-template
 
           parameters:
             - src: # cloneUrl

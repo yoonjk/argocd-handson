@@ -10,7 +10,7 @@ spec:
   volumes:               # define volume, same syntax as k8s Pod spec
   - name: work
     persistentVolumeClaim: 
-      claimName: cicd-workflow-pvc
+      claimName: ci-workflow-pvc
   arguments: 
     parameters:
       - name: cloneUrl 
@@ -225,12 +225,12 @@ spec:
         - name: GITHUB_USER
           valueFrom:
             secretKeyRef:
-              name: github-basic
+              name: github-credentials
               key: username
         - name: GITHUB_PASSWORD
           valueFrom:
             secretKeyRef:
-              name: github-basic
+              name: github-credentials
               key: personal_access_token
       outputs:
         artifacts:

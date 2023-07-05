@@ -13,7 +13,7 @@ kubectl create secret docker-registry docker-credentials \
 --docker-email=test@gmail.com \
 -n argo
 ## Authorization for Git Push 
-kubectl create secret generic github-basic \
+kubectl create secret generic github-credentials \
 --namespace=argo \
 --from-literal=username=username \
 --from-literal=personal_access_token=my-personal-token
