@@ -31,3 +31,8 @@ argocd app create guestbook --repo https://github.com/argoproj/argocd-example-ap
 ```bash
 kubectl delete -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
 ```
+
+## Change Automated Sync Policy default interval value in Argo CD
+kubectl patch cm/argocd-cm -p='{"data":{"timeout.reconciliation": "20s"}}' -n argocd
+kubectl delete pod argocd-application-controller-0 -n argocd
+argocd app set sample --auto-prune
