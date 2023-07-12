@@ -34,5 +34,7 @@ kubectl delete -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/s
 
 ## Change Automated Sync Policy default interval value in Argo CD
 kubectl patch cm/argocd-cm -p='{"data":{"timeout.reconciliation": "20s"}}' -n argocd
-kubectl delete pod argocd-application-controller-0 -n argocd
+kubectl port-forward -n argocd svc/argocd-server 8080:80
+argocd login localhost:8080 --username aaa --password  bb --insecure
 argocd app set sample --auto-prune
+kubectl delete pod argocd-application-controller-0 -n argocd
