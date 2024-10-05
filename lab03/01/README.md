@@ -47,13 +47,17 @@ curl -Lo basic-rollout-blue.yaml https://raw.githubusercontent.com/argoproj/argo
 curl -Lo basic-service.yaml https://raw.githubusercontent.com/argoproj/argo-rollouts/master/docs/getting-started/basic/service.yaml
 
 
-## green => blue 
+##  blue => green 
 kubectl argo rollouts set image rollout-bluegreen  \
-rollouts-demo=argoproj/rollouts-demo:blue
+rollouts-demo=argoproj/rollouts-demo:green -n bluegreen
 
 ## rollout 시작
 kubectl argo rollouts promote rollout-bluegreen
 
 ## watch
 kubectl argo rollouts get rollout rollout-bluegreen -w
+
+kubectl port-forward svc/rollout-bluegreen-active -n bluegreen 8080:80 --address 0.0.0.0
+
+kubectl port-forward svc/rollout-bluegreen-preview -n bluegreen 8090:80 --address 0.0.0.0
 

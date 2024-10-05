@@ -1,12 +1,11 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: user00-bluegreen
-  annotations:
-    kubernetes.io/ingress.class: "nginx"
+  name: rollout-bluegreen
 spec:
+  ingressClassName: nginx
   rules:
-    - host: user00-bluegreen.159.122.179.241.nip.io
+    - host: rollouts-demo.com
       http:
         paths:
           - path: /

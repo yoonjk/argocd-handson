@@ -1,18 +1,19 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: rollouts-demo-stable
+  name: canary-demo-stable
 spec:
   ingressClassName: nginx
   rules:
-  - host: rollouts-demo.com
+  - host: canary-demo.com
     http:
       paths:
-      - path: /
+      - path: /success
         pathType: Prefix
         backend:
           service:
-            name: rollouts-demo-stable
+            name: canary-demo-stable
             port:
               number: 80
 
+              

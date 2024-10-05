@@ -1,41 +1,48 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Rollout
 metadata:
-  name: canary-rollouts-demo
+  name: canary-demo
 spec:
+  replicas: 5
   strategy:
     canary:
+      canaryService: canary-demo-canary
+      stableService: canary-demo-stable
+      trafficRouting:
+        nginx:
+          stableIngress: canary-demo-stable
+          additionalIngressAnnotations:   # optional
+            canary-by-header: X-Canary          
       steps:
       - setWeight: 20
-      - pause: {duration: 10}
-      - analysis:
-          templates:
-          - templateName: canary-check
+      - pause: {}
       - setWeight: 40
-      - pause: {duration: 2m}
+      - pause: { duration: 2m}
       - setWeight: 60
-      - pause: {duration: 10}
+      - pause: { duration: 10s}
       - setWeight: 80
-      - pause: {duration: 10}
+      - pause: { duration: 10s}
+      - setWeight: 100
   revisionHistoryLimit: 2
-  replicas: 5
   selector:
     matchLabels:
-      app: canary-rollouts-demo
+      app: canary-demo
   template:
     metadata:
       labels:
-        app: canary-rollouts-demo
+        app: canary-demo
     spec:
       containers:
-      - name: rollouts-demo
-        image: argoproj/rollouts-demo:blue
+      - name: canary-demo
+        image: nexweb1/canary-demo:v1
+        imagePullPolicy: Always
         ports:
         - name: http
-          containerPort: 8080
+          containerPort: 3000
           protocol: TCP
         resources:
           requests:
             memory: 32Mi
             cpu: 5m
 
+            
