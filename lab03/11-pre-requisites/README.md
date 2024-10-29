@@ -3,6 +3,8 @@
 ## minikube 
 
 ```bash
+minikube stop
+minikube delete
 minikube start --memory=8192mb --cpus=4 --force
 minikube addons enable metrics-server
 ```
